@@ -9,7 +9,7 @@ import {
   Plane,
   Text3D,
 } from "@react-three/drei";
-import { Mesh, WireframeGeometry } from "three";
+import { Mesh, MeshBasicMaterial, WireframeGeometry } from "three";
 import { Debug, Physics, Triplet, useBox, usePlane } from "@react-three/cannon";
 import { folder, useControls } from "leva";
 
@@ -36,7 +36,7 @@ const ALPHAKEYS = "abcdefghjiklmnopqrstuvwxyz";
 const Word = ({ text, ...props }: { text: string }) => {
   const [textRef, textApi] = useBox(() => ({
     mass: randomBetween(0.1, 20),
-    position: props.position ?? [randomBetween(-20, 20), 15, 5],
+    position: props.position ?? [randomBetween(-10, 10), 15, 5],
   }));
 
   return (
@@ -65,7 +65,11 @@ const Floor = ({ onCollide }: FloorProps) => {
     rotation: [-Math.PI / 2, 0, 0],
     onCollide,
   }));
-  return <Plane receiveShadow args={[100, 100]}></Plane>;
+  return (
+    <Plane receiveShadow args={[100, 100]}>
+      <meshBasicMaterial color="lightblue" />
+    </Plane>
+  );
 };
 
 const Game = () => {
@@ -177,8 +181,8 @@ const Game = () => {
 const Home: NextPage = () => {
   const controls = useControls({
     camera: folder({
-      cameraPosition: [1, 0, 50],
-      fov: 45,
+      cameraPosition: [1, 10, 25],
+      fov: 80,
     }),
     canvasShadows: true,
     dimensions: folder({
