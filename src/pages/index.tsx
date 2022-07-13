@@ -33,13 +33,14 @@ function randomBetween(min: number, max: number) {
 }
 const ALPHAKEYS = "abcdefghjiklmnopqrstuvwxyz";
 
-const Word = ({ text, ...props }: { text: string }) => {
+const Word = ({ text, ...props }: { text: string, completedIndex: number }) => {
   const [textRef, textApi] = useBox(() => ({
     mass: randomBetween(0.1, 20),
     position: props.position ?? [randomBetween(-10, 10), 15, 5],
   }));
 
   return (
+    <>
     <Text3D
       castShadow
       scale={0.5}
@@ -52,8 +53,9 @@ const Word = ({ text, ...props }: { text: string }) => {
       {...props}
     >
       <meshNormalMaterial />
-      {text}
+      {text.slice(props.completedIndex).padStart(text.length, ' ')}
     </Text3D>
+    </>
   );
 };
 
@@ -160,9 +162,9 @@ const Game = () => {
     <React.Suspense fallback={null}>
       <Physics>
         <Debug color="black" scale={1.1}>
-          {Array.from(wordMap.values()).map(({ text }) => (
-            <Word key={text} text={text} />
-          ))}
+          {Array.from(wordMap.values()).map(({ text }) => {
+            return activeWord?.text === text ? <Word scale={1.5} key={text} text={text} completedIndex={activeWord?.nextCharIndex} /> : <Word key={text} text={text} />
+          })}
           {isGameOver && (
             <Word
               text={"Game Over! :("}
