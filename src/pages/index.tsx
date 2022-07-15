@@ -12,6 +12,7 @@ import {
 import { Mesh, MeshBasicMaterial, WireframeGeometry } from "three";
 import { Debug, Physics, Triplet, useBox, usePlane } from "@react-three/cannon";
 import { folder, useControls } from "leva";
+import { StringValidation } from "zod";
 
 const sizes = {
   height: 800,
@@ -43,10 +44,14 @@ function randomBetween(min: number, max: number) {
 }
 const ALPHAKEYS = "abcdefghjiklmnopqrstuvwxyz";
 
-const Word = ({ text, ...props }: { text: string; completedIndex: number }) => {
+interface WordProps extends Partial<React.ComponentProps<typeof Text3D>> {
+  text: string;
+  completedIndex?: number;
+}
+const Word = ({ text, ...props }: WordProps) => {
   const [textRef, textApi] = useBox(() => ({
     mass: randomBetween(0.1, 20),
-    position: props.position ?? [randomBetween(-10, 10), 25, 5],
+    position: [randomBetween(-10, 10), 25, 5],
   }));
 
   return (
@@ -54,6 +59,7 @@ const Word = ({ text, ...props }: { text: string; completedIndex: number }) => {
       <Text3D
         castShadow
         scale={1}
+        //@ts-ignore
         ref={textRef}
         size={1}
         font={"/Hack_Regular.json"}
