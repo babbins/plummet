@@ -28,33 +28,43 @@ interface ActiveWord extends Word {
   nextCharIndex: number;
 }
 
+let missSound: HTMLAudioElement | undefined,
+  wordCompleteSound: HTMLAudioElement | undefined,
+  undoSound: HTMLAudioElement | undefined;
+
+// this errors on server-side
+try {
+  missSound = new Audio("miss.wav");
+  wordCompleteSound = new Audio("word-complete.wav");
+  undoSound = new Audio("undo.wav");
+} catch (e) {}
 function randomBetween(min: number, max: number) {
   return Math.floor(Math.random() * (max - min + 1) + min);
 }
 const ALPHAKEYS = "abcdefghjiklmnopqrstuvwxyz";
 
-const Word = ({ text, ...props }: { text: string, completedIndex: number }) => {
+const Word = ({ text, ...props }: { text: string; completedIndex: number }) => {
   const [textRef, textApi] = useBox(() => ({
     mass: randomBetween(0.1, 20),
-    position: props.position ?? [randomBetween(-10, 10), 15, 5],
+    position: props.position ?? [randomBetween(-10, 10), 25, 5],
   }));
 
   return (
     <>
-    <Text3D
-      castShadow
-      scale={0.5}
-      ref={textRef}
-      size={1}
-      font={"/Hack_Regular.json"}
-      bevelEnabled
-      bevelSize={0.05}
-      bevelSegments={4}
-      {...props}
-    >
-      <meshNormalMaterial />
-      {text.slice(props.completedIndex).padStart(text.length, ' ')}
-    </Text3D>
+      <Text3D
+        castShadow
+        scale={1}
+        ref={textRef}
+        size={1}
+        font={"/Hack_Regular.json"}
+        bevelEnabled
+        bevelSize={0.05}
+        bevelSegments={4}
+        {...props}
+      >
+        <meshNormalMaterial />
+        {text.slice(props.completedIndex).padStart(text.length, " ")}
+      </Text3D>
     </>
   );
 };
@@ -112,6 +122,7 @@ const Game = () => {
     });
 
     setActiveWord(null);
+    wordCompleteSound?.play();
   }, [activeWord]);
 
   React.useEffect(() => {
@@ -122,9 +133,19 @@ const Game = () => {
 
   React.useEffect(() => {
     const listener = (e: KeyboardEvent) => {
+      const SPACE = " ";
+      if (activeWord && e.key === SPACE) {
+        setActiveWord(null);
+        undoSound?.play();
+      }
       if (!ALPHAKEYS.includes(e.key)) return;
       const char = e.key;
-      if (activeWord && activeWord.nextChar === char) {
+      if (activeWord) {
+        if (char !== activeWord.text[activeWord.nextCharIndex]) {
+          missSound?.play();
+          return;
+        }
+
         const nextCharIndex = activeWord.nextCharIndex + 1;
         const nextChar = activeWord.text[nextCharIndex];
         if (!nextChar) {
@@ -134,7 +155,10 @@ const Game = () => {
         }
       } else {
         const targetWord = wordMap.get(char);
-        if (!targetWord) return;
+        if (!targetWord) {
+          missSound?.play();
+          return;
+        }
         if (targetWord.text.length > 1) {
           setActiveWord({
             ...targetWord,
@@ -160,15 +184,23 @@ const Game = () => {
   };
   return (
     <React.Suspense fallback={null}>
-      <Physics>
+      <Physics gravity={[0, -1, 0]}>
         <Debug color="black" scale={1.1}>
           {Array.from(wordMap.values()).map(({ text }) => {
-            return activeWord?.text === text ? <Word scale={1.5} key={text} text={text} completedIndex={activeWord?.nextCharIndex} /> : <Word key={text} text={text} />
+            return activeWord?.text === text ? (
+              <Word
+                key={text}
+                text={text}
+                completedIndex={activeWord?.nextCharIndex}
+              />
+            ) : (
+              <Word key={text} text={text} />
+            );
           })}
           {isGameOver && (
             <Word
               text={"Game Over! :("}
-              scale={1.5}
+              scale={1.2}
               position={[0, 15, 0]}
               onClick={restartGame}
             />
