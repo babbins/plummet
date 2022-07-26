@@ -14,8 +14,6 @@ const sizes = {
   height: "100%",
   width: "100%",
 };
-
-const aspectRatio = sizes.width / sizes.height;
 interface Word {
   text: string;
 }
@@ -206,4 +204,5 @@ const Home: NextPage = () => {
     </div>
   );
 };
+
 export default Home;
