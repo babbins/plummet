@@ -1,22 +1,18 @@
-import type { NextPage } from "next";
-import React from "react";
-import randomWords from "random-words";
-import { Canvas, useFrame, Vector3 } from "@react-three/fiber";
-import {
-  Center,
-  Float,
-  OrthographicCamera,
-  Plane,
-  Text3D,
-} from "@react-three/drei";
-import { Mesh, MeshBasicMaterial, WireframeGeometry } from "three";
-import { Debug, Physics, Triplet, useBox, usePlane } from "@react-three/cannon";
+import { Debug, Physics } from "@react-three/cannon";
+import { OrbitControls } from "@react-three/drei";
+import { Canvas, useFrame } from "@react-three/fiber";
+import { Floor } from "components/Floor";
+import { Word } from "components/Word";
 import { folder, useControls } from "leva";
-import { StringValidation } from "zod";
+import type { NextPage } from "next";
+import randomWords from "random-words";
+import React from "react";
+import * as audio from "utils/audio";
+import { randomBetween } from "utils/random-between";
 
 const sizes = {
-  height: 800,
-  width: 600,
+  height: "100%",
+  width: "100%",
 };
 
 const aspectRatio = sizes.width / sizes.height;
@@ -29,66 +25,7 @@ interface ActiveWord extends Word {
   nextCharIndex: number;
 }
 
-let missSound: HTMLAudioElement | undefined,
-  wordCompleteSound: HTMLAudioElement | undefined,
-  undoSound: HTMLAudioElement | undefined;
-
-// this errors on server-side
-try {
-  missSound = new Audio("miss.wav");
-  wordCompleteSound = new Audio("word-complete.wav");
-  undoSound = new Audio("undo.wav");
-} catch (e) {}
-function randomBetween(min: number, max: number) {
-  return Math.floor(Math.random() * (max - min + 1) + min);
-}
 const ALPHAKEYS = "abcdefghjiklmnopqrstuvwxyz";
-
-interface WordProps extends Partial<React.ComponentProps<typeof Text3D>> {
-  text: string;
-  completedIndex?: number;
-}
-const Word = ({ text, ...props }: WordProps) => {
-  const [textRef, textApi] = useBox(() => ({
-    mass: randomBetween(0.1, 20),
-    position: [randomBetween(-10, 10), 25, 5],
-  }));
-
-  return (
-    <>
-      <Text3D
-        castShadow
-        scale={1}
-        //@ts-ignore
-        ref={textRef}
-        size={1}
-        font={"/Hack_Regular.json"}
-        bevelEnabled
-        bevelSize={0.05}
-        bevelSegments={4}
-        {...props}
-      >
-        <meshNormalMaterial />
-        {text.slice(props.completedIndex).padStart(text.length, " ")}
-      </Text3D>
-    </>
-  );
-};
-
-interface FloorProps {
-  onCollide: () => void;
-}
-const Floor = ({ onCollide }: FloorProps) => {
-  const [ref, planeApi] = usePlane(() => ({
-    rotation: [-Math.PI / 2, 0, 0],
-    onCollide,
-  }));
-  return (
-    <Plane receiveShadow args={[100, 100]}>
-      <meshBasicMaterial color="lightblue" />
-    </Plane>
-  );
-};
 
 const Game = () => {
   const [isGameOver, setIsGameOver] = React.useState<boolean>(false);
@@ -128,7 +65,7 @@ const Game = () => {
     });
 
     setActiveWord(null);
-    wordCompleteSound?.play();
+    audio.wordComplete?.play();
   }, [activeWord]);
 
   React.useEffect(() => {
@@ -142,13 +79,13 @@ const Game = () => {
       const SPACE = " ";
       if (activeWord && e.key === SPACE) {
         setActiveWord(null);
-        undoSound?.play();
+        audio.undo?.play();
       }
       if (!ALPHAKEYS.includes(e.key)) return;
       const char = e.key;
       if (activeWord) {
         if (char !== activeWord.text[activeWord.nextCharIndex]) {
-          missSound?.play();
+          audio.miss?.play();
           return;
         }
 
@@ -162,7 +99,7 @@ const Game = () => {
       } else {
         const targetWord = wordMap.get(char);
         if (!targetWord) {
-          missSound?.play();
+          audio.miss?.play();
           return;
         }
         if (targetWord.text.length > 1) {
@@ -226,8 +163,8 @@ const Home: NextPage = () => {
     }),
     canvasShadows: true,
     dimensions: folder({
-      containerHeight: `${sizes.height}px`,
-      containerWidth: `${sizes.width}px`,
+      containerHeight: `${sizes.height}`,
+      containerWidth: `${sizes.width}`,
     }),
     light: folder({
       lightPosition: [10, 10, 10],
@@ -261,6 +198,7 @@ const Home: NextPage = () => {
           castShadow={controls.castShadow}
           shadow-mapSize={controls["shadow-mapSize"]}
         />
+        <OrbitControls />
         <ambientLight />
         <Game />
         <axesHelper args={[3]} />
